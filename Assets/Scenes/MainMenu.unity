@@ -222,7 +222,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55fe00b16887f49489644f1254c96f43, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VolumeSlider
-  paramName: MusicVol
+  paramName: MusicVolume
 --- !u!1 &28874976
 GameObject:
   m_ObjectHideFlags: 0
@@ -3997,7 +3997,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55fe00b16887f49489644f1254c96f43, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VolumeSlider
-  paramName: SFXVol
+  paramName: SFXVolume
 --- !u!1 &602356740
 GameObject:
   m_ObjectHideFlags: 0

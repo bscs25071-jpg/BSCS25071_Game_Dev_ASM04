@@ -1,14 +1,24 @@
 using UnityEngine;
 
-// Lecture 06 wali Coin.cs agar tumhare paas hai to WOHI use karo. Ye sirf backup hai.
 public class Coin : MonoBehaviour
 {
-    void Update() => transform.Rotate(0f, 120f * Time.deltaTime, 0f, Space.World);   // ghumta hai
+    public GameObject pickupParticlesPrefab;
+
+    void Update() => transform.Rotate(0f, 120f * Time.deltaTime, 0f, Space.World);
 
     void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Player")) return;
-        GameManager.Instance.AddScore(1);
+
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayPickup();
+
+        if (pickupParticlesPrefab != null)
+            Instantiate(pickupParticlesPrefab, transform.position, Quaternion.identity);
+
+        if (GameManager.Instance != null)
+            GameManager.Instance.AddScore(1);
+
         Destroy(gameObject);
     }
 }

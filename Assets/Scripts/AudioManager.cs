@@ -40,8 +40,8 @@ public class AudioManager : MonoBehaviour
     public AudioClip errorSound;
 
     public const string MASTER = "MasterVol";
-    public const string MUSIC = "MusicVol";
-    public const string SFX = "SFXVol";
+    public const string MUSIC = "MusicVolume";
+    public const string SFX = "SfxVolume";
     public const string UI = "UIVol";
 
     AudioSource activeMusic;
@@ -106,7 +106,8 @@ public class AudioManager : MonoBehaviour
     {
         if (clip == null || sfxSource == null) return;
 
-        sfxSource.pitch = Random.Range(0.95f, 1.05f);
+        float semitones = Random.Range(-2f, 2f);
+        sfxSource.pitch = Mathf.Pow(2f, semitones / 12f);
         sfxSource.PlayOneShot(clip, volume);
     }
 
