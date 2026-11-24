@@ -1,8 +1,8 @@
-using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
-using UnityEngine.SceneManagement;
 using System.Collections;
+using TMPro;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class LoadingManager : MonoBehaviour
 {
@@ -16,22 +16,29 @@ public class LoadingManager : MonoBehaviour
 
     IEnumerator LoadSceneProgress()
     {
-        float progress = 0f;
+        string target = string.IsNullOrEmpty(LevelLoader.TargetScene) ? "MainMenu" : LevelLoader.TargetScene;
+        AsyncOperation op = SceneManager.LoadSceneAsync(target);
+        op.allowSceneActivation = false;
 
-        while (progress < 1f)
+        float displayProgress = 0f;
+
+        while (!op.isDone)
         {
-            progress += Time.deltaTime / 3f;
+            float realProgress = Mathf.Clamp01(op.progress / 0.9f);
+            displayProgress = Mathf.MoveTowards(displayProgress, realProgress, Time.unscaledDeltaTime * 1.5f);
 
-            loadingBar.fillAmount = progress;
+            if (loadingBar != null)
+                loadingBar.fillAmount = displayProgress;
 
-            loadingText.text = "Loading... " + (int)(progress * 100) + "%";
+            if (loadingText != null)
+                loadingText.text = $"Loading... {Mathf.RoundToInt(displayProgress * 100f)}%";
+
+            if (displayProgress >= 1f && op.progress >= 0.9f)
+            {
+                op.allowSceneActivation = true;
+            }
 
             yield return null;
         }
-
-        loadingBar.fillAmount = 1f;
-        loadingText.text = "Loading... 100%";
-        UIManager.openHUDAfterLoading = true;
-        SceneManager.LoadScene("SampleScene");
     }
 }

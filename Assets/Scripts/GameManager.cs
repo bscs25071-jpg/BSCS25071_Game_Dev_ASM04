@@ -11,20 +11,23 @@ public class GameManager : MonoBehaviour
     [SerializeField] Health player;
     [SerializeField] Transform respawnPoint;
 
-    // Purane optional fields (agar kisi purane level mein lage hon to null error nahi aayega)
     [SerializeField] TMP_Text scoreText, livesText;
     [SerializeField] GameObject winPanel, losePanel;
 
     [SerializeField] float timeLimit = 0f;
     [SerializeField] TMP_Text timerText;
 
-    int score; float timeLeft; bool ended;
+    int score;
+    float timeLeft;
+    float levelStartTime;
+    bool ended;
 
     void Awake() => Instance = this;
 
     void Start()
     {
         timeLeft = timeLimit;
+        levelStartTime = Time.time;
         UpdateUI();
     }
 
@@ -48,7 +51,6 @@ public class GameManager : MonoBehaviour
         int hp = player != null ? Mathf.Max(player.Current, 0) : 0;
         int maxHp = player != null ? player.Max : 3;
 
-        // Naya HUDController update karein
         if (HUDController.Instance != null)
         {
             HUDController.Instance.UpdateScore(score);
@@ -56,7 +58,6 @@ public class GameManager : MonoBehaviour
             HUDController.Instance.UpdateHealth(hp, maxHp);
         }
 
-        // Purane text references agar hon to unhein bhi safe rakhein
         if (scoreText) scoreText.text = $"Score: {score} / {targetScore}";
         if (livesText) livesText.text = $"Lives: {lives}   Health: {hp} / {maxHp}";
     }
@@ -85,6 +86,17 @@ public class GameManager : MonoBehaviour
     {
         if (ended) return;
         ended = true;
+
+        float elapsed = Mathf.Max(0.1f, Time.time - levelStartTime);
+        int levelNum = GetCurrentLevelNumber();
+        if (levelNum > 0)
+        {
+            SaveData.TrySaveBestTime(levelNum, elapsed);
+            SaveData.TrySaveBestScore(score);
+            if (levelNum < 5)
+                SaveData.UnlockLevel(levelNum + 1);
+        }
+
         if (HUDController.Instance != null)
             HUDController.Instance.ShowWin();
         else if (winPanel)
@@ -92,6 +104,14 @@ public class GameManager : MonoBehaviour
             winPanel.SetActive(true);
             Time.timeScale = 0f;
         }
+    }
+
+    int GetCurrentLevelNumber()
+    {
+        string sceneName = SceneManager.GetActiveScene().name;
+        if (sceneName.StartsWith("Level0") && int.TryParse(sceneName.Substring(6), out int num))
+            return num;
+        return 0;
     }
 
     void Lose()
