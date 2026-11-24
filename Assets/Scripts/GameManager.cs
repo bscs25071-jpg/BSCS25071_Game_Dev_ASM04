@@ -3,8 +3,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// LECTURE 07 ka GameManager. Sirf 3 cheezen "NEW" hain (5 levels ke liye):
-//   1) timeLimit + timerText   2) Update() mai countdown   3) NextLevel()
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
@@ -12,52 +10,103 @@ public class GameManager : MonoBehaviour
     [SerializeField] float respawnDelay = 0.6f, spawnProtection = 1.5f;
     [SerializeField] Health player;
     [SerializeField] Transform respawnPoint;
+
+    // Purane optional fields (agar kisi purane level mein lage hon to null error nahi aayega)
     [SerializeField] TMP_Text scoreText, livesText;
     [SerializeField] GameObject winPanel, losePanel;
 
-    [SerializeField] float timeLimit = 0f;      // NEW: 0 = koi timer nahi
-    [SerializeField] TMP_Text timerText;        // NEW
+    [SerializeField] float timeLimit = 0f;
+    [SerializeField] TMP_Text timerText;
 
     int score; float timeLeft; bool ended;
 
     void Awake() => Instance = this;
-    void Start() { timeLeft = timeLimit; UpdateUI(); }
 
-    void Update()                                // NEW: countdown
+    void Start()
+    {
+        timeLeft = timeLimit;
+        UpdateUI();
+    }
+
+    void Update()
     {
         if (timeLimit <= 0f || ended) return;
         timeLeft -= Time.deltaTime;
-        timerText.text = "Time: " + Mathf.CeilToInt(Mathf.Max(timeLeft, 0f));
+        if (timerText) timerText.text = "Time: " + Mathf.CeilToInt(Mathf.Max(timeLeft, 0f));
         if (timeLeft <= 0f) Lose();
     }
 
-    public void AddScore(int amount) { score += amount; UpdateUI(); if (score >= targetScore) Win(); }
+    public void AddScore(int amount)
+    {
+        score += amount;
+        UpdateUI();
+        if (score >= targetScore) Win();
+    }
 
     public void UpdateUI()
     {
-        scoreText.text = $"Score: {score} / {targetScore}";
-        livesText.text = $"Lives: {lives}   Health: {Mathf.Max(player.Current, 0)} / {player.Max}";
+        int hp = player != null ? Mathf.Max(player.Current, 0) : 0;
+        int maxHp = player != null ? player.Max : 3;
+
+        // Naya HUDController update karein
+        if (HUDController.Instance != null)
+        {
+            HUDController.Instance.UpdateScore(score);
+            HUDController.Instance.UpdateLives(lives);
+            HUDController.Instance.UpdateHealth(hp, maxHp);
+        }
+
+        // Purane text references agar hon to unhein bhi safe rakhein
+        if (scoreText) scoreText.text = $"Score: {score} / {targetScore}";
+        if (livesText) livesText.text = $"Lives: {lives}   Health: {hp} / {maxHp}";
     }
 
-    public void PlayerDied() { lives--; UpdateUI(); if (lives <= 0) Lose(); else StartCoroutine(Respawn()); }
+    public void PlayerDied()
+    {
+        lives--;
+        UpdateUI();
+        if (lives <= 0) Lose();
+        else StartCoroutine(Respawn());
+    }
 
     IEnumerator Respawn()
     {
         yield return new WaitForSeconds(respawnDelay);
-        Rigidbody body = player.GetComponent<Rigidbody>();
-        body.position = respawnPoint.position; body.linearVelocity = Vector3.zero;
-        player.Restore(spawnProtection);
+        if (player != null && respawnPoint != null)
+        {
+            Rigidbody body = player.GetComponent<Rigidbody>();
+            body.position = respawnPoint.position;
+            body.linearVelocity = Vector3.zero;
+            player.Restore(spawnProtection);
+        }
     }
 
-    void Win()  { ended = true; winPanel.SetActive(true);  Time.timeScale = 0f; }
-    void Lose() { ended = true; losePanel.SetActive(true); Time.timeScale = 0f; }
-
-    public void Restart() { Time.timeScale = 1f; SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); }
-
-    public void NextLevel()                      // NEW: Win panel ka button isay call karega
+    void Win()
     {
-        Time.timeScale = 1f;
-        int next = (SceneManager.GetActiveScene().buildIndex + 1) % SceneManager.sceneCountInBuildSettings;
-        SceneManager.LoadScene(next);            // aakhri level ke baad wapas Level 1
+        if (ended) return;
+        ended = true;
+        if (HUDController.Instance != null)
+            HUDController.Instance.ShowWin();
+        else if (winPanel)
+        {
+            winPanel.SetActive(true);
+            Time.timeScale = 0f;
+        }
     }
+
+    void Lose()
+    {
+        if (ended) return;
+        ended = true;
+        if (HUDController.Instance != null)
+            HUDController.Instance.ShowGameOver();
+        else if (losePanel)
+        {
+            losePanel.SetActive(true);
+            Time.timeScale = 0f;
+        }
+    }
+
+    public void Restart() => LevelLoader.RestartCurrentLevel();
+    public void NextLevel() => LevelLoader.LoadNextLevel();
 }
